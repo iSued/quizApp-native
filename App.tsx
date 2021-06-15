@@ -9,46 +9,26 @@
  */
 
 import React from "react";
-import Courses from "./Components/CoursesHome/index";
-
-type CourseCard = {
-  title: string;
-  author: string;
-  thumbnail: string;
-  isLiked: boolean;
-  isRead: boolean;
-  isBookmarked: boolean;
-  timeToRead: number;
-  categories: string[];
-  toggleLike: () => boolean;
-  toggleBookmarked: () => boolean;
-};
+import CoursesHome from "./Components/CoursesHome/index";
+import CourseCardHook from "./Hooks/CourseCardHooks/index";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import {
+  faStopwatch,
+  faEye,
+  faThumbsUp,
+  faBookmark,
+} from "@fortawesome/free-solid-svg-icons";
+library.add(faStopwatch, faEye, faThumbsUp, faBookmark);
 
 const App = () => {
-  const fakedata: CourseCard = {
-    title: "Che cos'è sharepoint online?",
-    author: "OFFICE 365",
-    thumbnail: "https://picsum.photos/seed/picsum/200/300",
-    isLiked: true,
-    isRead: false,
-    isBookmarked: true,
-    timeToRead: 2,
-    categories: [
-      "TUTTI",
-      "DIGITAL FOR LEADER",
-      "OFFICE 365",
-      "TECNOLOGIE DIGITALI",
-    ],
-    toggleLike: () => {
-      return true;
-    },
-    toggleBookmarked: () => {
-      return false;
-    },
-  };
+  const { fakedata, toggleBookmarked, toggleLike } = CourseCardHook();
   return (
     <>
-      <Courses card={fakedata} />
+      <CoursesHome
+        card={fakedata}
+        toggleLike={toggleLike}
+        toggleBookmarked={toggleBookmarked}
+      />
     </>
   );
 };

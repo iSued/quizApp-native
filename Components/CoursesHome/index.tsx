@@ -4,17 +4,20 @@ import {
   Text,
   StyleSheet,
   Image,
-  ScrollView,
   TouchableWithoutFeedback,
-  FlatList,
 } from "react-native";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import {
-  faStopwatch,
-  faEye,
-  faThumbsUp,
-  faBookmark,
-} from "@fortawesome/free-solid-svg-icons";
+
+import Animated, {
+  interpolate,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  useAnimatedGestureHandler,
+  useDerivedValue,
+} from "react-native-reanimated";
+import { PanGestureHandler } from "react-native-gesture-handler";
 
 type CourseCard = {
   title: string;
@@ -25,101 +28,146 @@ type CourseCard = {
   isBookmarked: boolean;
   timeToRead: number;
   categories: string[];
-  toggleLike: () => boolean;
-  toggleBookmarked: () => boolean;
 };
 
 const HomeCourses: React.FC<{
   card: CourseCard;
-}> = ({ card }) => {
-  const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
-  const flatListRef = React.useRef<any>();
+  toggleLike: () => void;
+  toggleBookmarked: () => void;
+}> = ({ card, toggleLike, toggleBookmarked }) => {
+  const scaleLike = useSharedValue(1);
+  const scaleBookmark = useSharedValue(1);
+
+  const bookmarkStyles = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scaleBookmark.value }],
+    };
+  });
+
+  const likeStyles = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scaleLike.value }],
+    };
+  });
+
+  const likeAnimation = () => {
+    if (card.isLiked) {
+      toggleLike();
+      scaleLike.value = withSpring(
+        0.8,
+        {
+          damping: 20,
+          mass: 3,
+          stiffness: 2500,
+        },
+        () => {
+          scaleLike.value = withSpring(1);
+        }
+      );
+    } else {
+      toggleLike();
+      scaleLike.value = withSpring(
+        1.5,
+        {
+          damping: 20,
+          mass: 3,
+          stiffness: 2500,
+        },
+        () => {
+          scaleLike.value = withSpring(1);
+        }
+      );
+    }
+  };
+
+  const bookmarkAnimation = () => {
+    if (card.isBookmarked) {
+      toggleBookmarked();
+      scaleBookmark.value = withSpring(
+        0.8,
+        {
+          damping: 20,
+          mass: 3,
+          stiffness: 2500,
+        },
+        () => {
+          scaleBookmark.value = withSpring(1);
+        }
+      );
+    } else {
+      toggleBookmarked();
+      scaleBookmark.value = withSpring(
+        1.5,
+        {
+          damping: 20,
+          mass: 3,
+          stiffness: 2500,
+        },
+        () => {
+          scaleBookmark.value = withSpring(1);
+        }
+      );
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={{ flex: 0.5 }}>
-        <FlatList
-          style={styles.menu}
-          horizontal={true}
-          showsHorizontalScrollIndicator={false}
-          data={card.categories}
-          ref={flatListRef}
-          renderItem={({ item, index }) => (
-            <TouchableWithoutFeedback
-              key={index}
-              onPress={() => {
-                setSelectedIndex(index);
-                flatListRef.current.scrollToIndex({
-                  index: index,
-                  animated: true,
-                });
-              }}
-            >
-              <View
-                key={index}
-                style={
-                  selectedIndex === index ? styles.selected : styles.menuItem
-                }
-              >
-                <Text>{item}</Text>
-              </View>
-            </TouchableWithoutFeedback>
-          )}
-        />
+    <View style={styles.courseCard}>
+      <View style={styles.cardImageContainer}>
+        <Image
+          source={{ uri: `${card.thumbnail}` }}
+          style={styles.cardImage}
+        ></Image>
       </View>
-      <View
-        style={{
-          flex: 5,
+      <View style={styles.cardHeader}>
+        <View>
+          <Text style={styles.cardHeaderCategory}>{card.author}</Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <FontAwesomeIcon icon="stopwatch" />
+          <Text style={styles.courseTime}>{card.timeToRead}min</Text>
+        </View>
+      </View>
+      <View style={styles.cardTitle}>
+        <Text>{card.title}</Text>
+      </View>
+      <View style={styles.cardActions}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <FontAwesomeIcon
+            size={24}
+            icon="eye"
+            style={{ color: card.isRead ? "blue" : "#e0e0e0" }}
+          />
+        </View>
 
-          alignItems: "center",
-        }}
-      >
-        <View style={styles.courseCard}>
-          <View style={styles.cardImageContainer}>
-            <Image
-              source={{ uri: `${card.thumbnail}` }}
-              style={styles.cardImage}
-            ></Image>
-          </View>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardHeaderCategory}>{card.author}</Text>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <FontAwesomeIcon icon={faStopwatch} />
-              <Text style={styles.courseTime}>{card.timeToRead} min</Text>
-            </View>
-          </View>
-          <View style={styles.cardTitle}>
-            <Text>{card.title}</Text>
-          </View>
-          <View style={styles.cardActions}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableWithoutFeedback onPress={likeAnimation}>
+            <Animated.View style={likeStyles}>
               <FontAwesomeIcon
-                icon={faEye}
-                style={{ color: card.isRead ? "blue" : "#e0e0e0" }}
-              />
-            </View>
-
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <FontAwesomeIcon
-                icon={faThumbsUp}
-                style={{ color: card.isLiked ? "blue" : "#e0e0e0" }}
-              />
-              <FontAwesomeIcon
-                icon={faBookmark}
+                size={24}
+                icon="thumbs-up"
                 style={{
-                  color: card.isBookmarked ? "blue" : "#e0e0e0",
-                  marginLeft: 20,
+                  color: card.isLiked ? "blue" : "#e0e0e0",
                 }}
               />
-            </View>
-          </View>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+          <TouchableWithoutFeedback onPress={bookmarkAnimation}>
+            <Animated.View style={[bookmarkStyles, { marginLeft: 20 }]}>
+              <FontAwesomeIcon
+                size={24}
+                icon="bookmark"
+                style={{
+                  color: card.isBookmarked ? "blue" : "#e0e0e0",
+                }}
+              />
+            </Animated.View>
+          </TouchableWithoutFeedback>
         </View>
       </View>
     </View>
@@ -127,39 +175,12 @@ const HomeCourses: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: "column",
-  },
-  menu: {},
-  menuItem: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "flex-end",
-    width: 230,
-
-    borderColor: "#e0e0e0",
-    borderBottomWidth: 5,
-    borderStyle: "solid",
-    color: "#e0e0e0",
-  },
-  selected: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "flex-end",
-    width: 230,
-    paddingHorizontal: 15,
-    borderColor: "blue",
-    borderBottomWidth: 5,
-    borderStyle: "solid",
-    color: "blue",
-  },
   courseCard: {
     marginTop: 40,
     flexDirection: "column",
     backgroundColor: "white",
-    width: 350,
-    height: 300,
+
+    minHeight: 300,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
